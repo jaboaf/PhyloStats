@@ -1,0 +1,57 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\newtheorem{definition}{Definition}
+\title{Overview of Models and General Definitions}
+\author{Jojo Aboaf}
+\date{June 23rd 2021}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{General Definitions}
+\begin{definition}[SNP]
+\end{}
+
+\section{Overview of Models}
+
+The observed data is typically a sequence, of some length, on some finite alphabet. Typical alphabets include:
+\begin{itemize}
+\item DNA Bases: $\{A,C,G,T\}$
+\item "Ines": $\{ \{A,G\}, \{C,T\}\}$
+\item Amino Acids: $\{ala,arg,asn,asp,cys,gln,glu,gly,his,ile,leu,lys,met,phe,pro,ser,thr,trp,tyr,val\}$
+\item Codons: {"AAA","ACA","AGA","ATA","CAA","CCA","CGA","CTA","GAA","GCA","GGA","GTA","TCA","TTA","AAC","ACC","AGC","ATC","CAC","CCC","CGC","CTC","GAC","GCC","GGC","GTC","TAC","TCC","TGC","TTC","AAG","ACG","AGG","ATG","CAG" ,"CCG","CGG","CTG","GAG","GCG","GGG","GTG","TCG","TGG","TTG","AAT","ACT","AGT","ATT","CAT","CCT","CGT","CTT","GAT","GCT","GGT","GTT","TAT"  "TCT","TGT","TTT"} \ {"TAG" "TAA" "TGA"}
+\end{itemize}
+
+\subsection{Markov Chain Approaches}
+The ideas behind these approaches are intuitive and clear, so I have included the main models below.
+
+The justification for mathematical requirements aren't so clear. The "rate matrices" $Q$ are subject to $Q_{i,j} \geq 0, \forall i\neq j$, $Q\vec{1} = \vec{0}$, and $Q \in M_{k\times k}(\mathbb{R})$. The last is the most prohibitive. E.g. $P = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix}$ is a non-markovian transition matrix, (its rate matrix matrix is $\begin{pmatrix} \pi i/2 & - \pi i /2 \\ -\pi i/2 & \pi i /2\end{pmatrix}$, i.e. the principal branch of $\log P$). This seems like a very simple transition probability structure we should be able to account for in a model.
+
+
+\begin{definition}[Cavender-Farris-Neyman Model] is a model for "Ines".
+Parameter Space: $ \Theta = \mathbb{R}_+  $
+Model: $\mathfrak{M}_\Theta := \{ Q \in M_{2\times 2}(\mathbb{R}) \mid Q = \begin{pmatrix} -\theta & \theta \\ \theta & - \theta\end{pmatrix}, \theta \in \Theta \} $
+\end{definition}
+
+\begin{definition}[Jukes-Cantor Model] is a model for mutations of DNA bases.
+Parameter Space: $ \Theta = \mathbb{R}_+  $
+Model: $ \mathfrak{M}_\Theta := \{ Q \in M_{4\times 4}(\mathbb{R}) \mid Q = \begin{pmatrix} -3\theta & \theta & \theta & \theta \\ \theta & -3\theta & \theta & \theta \\ \theta & \theta & -3\theta & \theta\\ \theta & \theta & \theta & -3\theta\end{pmatrix}, \theta \in \Theta \} $
+\end{definition}
+\begin{definition}[Kimura 2-parameter Model] is a model for mutations of DNA bases.
+Parameter Space: $ \Theta = \mathbb{R}^2_+  $
+Model: $ \mathfrak{M}_\Theta := \{ Q \in M_{4\times 4}(\mathbb{R}) \mid Q = \begin{pmatrix} -\alpha-2\beta & \beta & \alpha & \beta \\ \beta & -\alpha-2\beta  & \beta & \alpha \\ \alpha & \beta & -\alpha-2\beta  & \beta\\ \beta & \alpha & \beta & -\alpha-2\beta \end{pmatrix}, (\alpha,\beta) \in \Theta \} $
+\end{definition}
+
+\begin{definition}[Kimura 3-parameter Model] is a model for mutations of DNA bases.
+Parameter Space: $ \Theta = \mathbb{R}^3_+  $
+Model: $ \mathfrak{M}_\Theta := \{ Q \in M_{4\times 4}(\mathbb{R}) \mid Q = \begin{pmatrix} -\alpha-\beta-\gamma & \beta & \alpha & \gamma \\ \alpha &  -\alpha-\beta-\gamma & \gamma & \beta \\ \alpha & \gamma & -\alpha-\beta-\gamma & \beta\\ \gamma & \alpha & \beta &  -\alpha-\beta-\gamma\end{pmatrix}, \theta \in \Theta \} $
+\end{definition}
+
+
+
+\end{document}
