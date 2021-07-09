@@ -1,0 +1,83 @@
+# There is a plethora of genetic data in the world, which consists of observed sequences and possibly other information. And if we wish to analyze such data or perform statistical procedures, we ought to be able to handle the case where our data is simply a collection of sequences of nucleotides.
+
+# For concreteness, lets take the collection of "complete" SARS-Covid-19 sequences, retrieved from and publicly available at the NCBI.
+
+# To proceed, lets identify the measurable space that each observation is contained in because then our sample will be in the n-fold product of this space (where n in the number of observations in our sample).
+# So, we are in need of space that accomodates all of our observations. Theres a couple of weird things that come up in biological data that we should (be able to) deal with such as 'N's in sequences denoting that the nucleotide in a position was not able to be observed. Other things include alignment (though I am not sure if this is a scientific procedure, under the biologists juristiction, or something of a statistical nature). Regardless, these are not a result of the data-generating process; they are a result of a (possibly informed) observation process. Maybe lets focus on the "nice" and "clean" data, and then return to some of these intricacies?
+
+# It appears that the lengths of sequences and the number of instances of a nucleotide in a sequence vary across the sample. So our observation space should accomodate sequences of different lengths and different numbers of nucleotides in sequences. 
+
+# Without further chattiness, denote the set of nucleotide bases by B. i.e. B = \{A,C,G,T\}.
+# That means the set of sequences of length l is Bˡ = \{ (w¹,…,wˡ) ∣ 1≤i≤m, wⁱ ∈ B \}.
+# So, the set of all sequences is the union over l ∈ ℕ of sequences of length l i.e. ⋃_{l∈ℕ} Bˡ. We will denote this set B^*
+
+# Bada bing! Any sequence of A,C,G,T is an element of B^*, so it seems like B^* is a good candidate for the set of possible outcomes for an observation. We can take 𝒫(B^*) to be the sigma-algebra. We could endow this space with a measure, and if we were being honest bayesians we'd do this before looking at the data. # So, what probability measure would you like?
+# It is easy to pick a probability measure on this discrete space, however I don't enjoy doing this because I know very very little about covid so I'm just making arbitrary choices. Also, I find it way more fun to explore data, than to arbitrarily specify some probability measure that ought to reflect how shit actually works in the world.
+
+# I'd like to take a more adventurous approach just because i want to. But I'd still like to be able to perform inference and estimate probabilities in a consistent manner.
+
+#lets just consider our data to be stochastic process,
+# So the first observation x₁
+π:Θ→[0,1] is a prior distribution
+
+π(θ|x) = P(x|θ)π(θ) / m(x)
+
+P(x and θ) = P(x*1_{𝔖θ}) = (x*1_{𝔖θ})^*|_1
+P(x|θ) =  = x*1_{𝔖θ}/π(θ)
+
+P(x|θ) = ∂_θ(x^*)|_0
+P(θ|x) = ∂_x(θ^*)|_0
+
+m(x) = ∫_Θ P(x|θ) π(x) dθ = ∫_Θ P(x|θ) dπ = ∫_Θ P(x|θ) dπ
+P(θ) = ∫_Ω P(θ|ω) P(ω) dω = ∫_Ω P(θ|ω) dω =
+
+NOTE: P(x|θ) = P_θ(x)
+
+P(𝐗|θ) = ∂_θ  𝐗^* |_0
+
+
+P(θ|𝐗) = P(θ|⨁_{l∈ℕ} 𝐗_l) = ⨁_l P(θ|𝐗_l)
+P(θ|𝐗) = P(θ|⨁_{θ∈Θ} 𝐗*1_{𝔖θ}) = ⨁_{θ∈Θ} P(θ|𝐗*1_{𝔖θ})
+
+
+P(θ|𝐗) = P(𝐗|θ)P(θ) / P(𝐗)
+P(𝐗) = ∫_Θ P(𝐗|θ)P(θ) dθ
+
+
+# eⁱ(n_1e_1+…+n_ke_l) = n_i
+# for some orthogonal (?) e_b \in V_B and E = (e_A,e_C,e_G,e_T), the dual of E is \hat{E} = (e^1,e^2,e^3,e^4).
+
+EᵀÊ = I_l = J_l*1_l
+# If we let E_w = (e_{w¹},…,e_{wˡ}); 
+# maybe let ⊗E_w = e_{(w¹,…,wˡ)} and ⊗Ê^ℕ = e^{(1,…,l)}
+# ⊗Eᵀ⊗Ê = λ_{≤l} = ∑_i e_{w^i}
+# e.g. E_w = e_
+
+# A bit of a radical take on this is to condider each observation to be an equivalence class of sequences
+# 𝔖 B^* / 𝔖_{1^l,∞} = 𝔖^l𝔖^B B̄
+
+# Orr just say we have the following : 𝔾^l(𝔾_B θ_1,…,𝔾_B θ_k) = 𝔾^l 𝔾_B^{×k} θ
+
+# orr maybe this is just the entire space: 𝔾^l (𝔾_{B,1}θ_1,…,𝔾_{B,k}θ_k)
+
+# wait no, it is just (𝔾_{B,1}θ_1,…,𝔾_{B,l}θ_l) ∀ l∈ℕ and for some defined θ ∈ B^{∞}. (it should be θ = B̄). maybe we ought to say 𝔾_{B}^* θ_*
+# I really like this one
+
+# Another way i like to paramaterize this is ⨁_{α∈ℕ^k} 𝔾^{|α|} θ^{⊗α} = ⨁_l ⨁_{π ∈ Π_l^k} 𝔾^{|π|} θ^{⊗π}
+# this has been my favorite for a while, its transparent
+
+
+# which we could parameterize as ⨁_{α∈ℕ^k s.t. i<j⟹αᵢ<αⱼ} 𝔾^{|α|} (𝔾_B)^{⊗|α|} θ^{⊗α}, where (𝔾_B)^{⊗|α|} is meant as the \{(g,\dots,g)|g ∈ 𝔾_B \}
+# the above is equal to  ⨁_{α∈ℕ^k s.t. i<j⟹αᵢ<αⱼ} 𝔾^{|α|} θ^{⊗𝔾^kα} = ⨁_l ⨁_{y∈Υ_l^k} 𝔾^{l} θ^{⊗𝔾^ky}
+# 
+
+
+
+
+
+
+
+
+
+# Letters or fancy letters used thus far:
+# A, B, C, G, T, N, ^*,𝒫,ℕ,∫  Φ,ϕ
