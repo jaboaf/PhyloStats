@@ -1,0 +1,234 @@
+using StatsBase
+using GRUtils
+#=
+C_L(s::String) = [count(==(l),s) for l in ['A','C','G','T']];
+function C_N(itr)
+    M = maximum(itr)
+    cnts = zeros(Int,M)
+   	for v in itr cnts[v] += 1 end
+    return cnts
+end
+
+heC_N(values(countmap(C_L.(SEQs))))
+C_N(values(countmap(sort.(C_L.(SEQs)))))
+=#
+# A large amount of Genomic and Genetic data is widely available. An observation typically consists of a sequence of nucleotide bases, and any information associated with it; for example, specie, time, or place. We call this a genomic observation if the sequence is a full length DNA sequence, and a genetic one if the sequence corresponds to a gene identified by a sub-sequence of DNA. The structure of sequence data is quite simple: pick any number of 'A's,'C's,'G's, and 'T's, and arrange them in any way. Frequently, sequences contain the letter 'N', denoting that the sequencing machines was unable to determine the nucleotide at a position. These machines are also subject to incorrectly reading a nucleotide.
+
+# Here are some references:
+# Pfeiffer, F., Gröber, C., Blank, M. et al. Systematic evaluation of error rates and causes in short samples in next-generation sequencing. Sci Rep 8, 10950 (2018). https://doi.org/10.1038/s41598-018-29325-6
+# Ma, X., Shao, Y., Tian, L. et al. Analysis of error profiles in deep next-generation sequencing data. Genome Biol 20, 50 (2019). https://doi.org/10.1186/s13059-019-1659-6
+
+# Statistical methods should be able to accomodate sequence data alone, and more importantly, genomic or genetic observations. These must be computationally feasible in context of the quantity of data available. Otherwise researchers are forced to use less data than what is available, which leaves the world less informed. Perhaps we ought to be more informed.
+
+#( Its oddly hard to find the number of observations in a bunch of the covid-19 research, and many of the papers sample from their data).
+
+# \section{Data}
+# We've been data-less, so for concreteness I've been playing with covid data.  This was retrieved from, and publicly available at the National Center for Biotechnology Innovation (NCBI).
+
+# I have a hard copy of all of the "complete" sequences as of ~ 2 weeks ago on my pc (there are ~ M = 356,471 of these), and i put a "toy" sample of start of covid to 5/31/20 in the github to try different stuff out with. Generally the following variables are available.
+# \begin{itemize}\item Accesion: This seems to uniquely identify a sequence
+# \item Submitters: This is a list of names of the people attached to the submission of the sequence.
+# \item Release Date: This is the date the submission was released I think.
+# \item Pangolin: unsure.
+# \item Species: This takes the value "Severe acute respiratory syndrome-related coronavirus"
+# \item Molecule Type: This takes the values "ssRNA(+)"
+# \item Length: Some Integer. I am wondering why these are not all multiples of 3.
+# \item Geo Location: Of the form "Country:City"
+# \item USA: If given, this is the state of the sample.
+# \item Host: This takes the values "Homo sapiens", "Felis Catus", and "Canis Lupus Familiaris"
+# \item Isolation Source: Where/how the sample was collected from the source, e.g. swab.
+# \item Collection Date: Date of collection, in any of the following formats, YYYY, YYYY-MM, or YYYY-MM-DD
+#\item Sequence: This is some word on the alphabet: 'A','C','G','T','N'. 'N' denotes "unknown nucleic acid residue". There seem to be quite a bit of 'N's. Approximately, 10\% of the first sequence is 'N'.
+#\end{itemize}
+
+# In the toy example, I have chosen the following variables based on my interests: collection date, location, sequence. I also used length, but this isn't a variable, it is statistic (right?).
+
+# \section{Information Space}
+# I'd like to break this section up into a couple parts.
+# 1) Preliminary Definitions and Notations:
+# 2) Sequence Space: This accomodates any observed sequence with no 'N's.
+# 3) Ambigious Sequence Space: This accomodates any observed sequence.
+# 4) Observation Space: This combines ambiious sequence space with other information.
+# 5) Data Space: I don't know yet, this may be better as its own section.
+
+#\section{Preliminary Definitions and Notations}
+B = Set(['A','C','G','T'])
+B\bar = ['A';'C';'G';'T'] # mathematically this is equal to a 4-tuple
+toydata = read("some_sequences.fasta",String);
+n = count(==('>'),toydata)
+yyyys = String[]; mms=String[]; dds=String[];
+geos=String[]; lens= Int[]; seqs = String[];
+SAMPLE = Tuple{String,String,String,String,Int64,String}[]
+for x in split(toydata,'>')[2:end]
+	x = replace(x,'\n'=>"")
+	x = split(x,'|')
+	# date,location,length,seq
+
+	geo = String(x[3]); push!(geos,geo)
+	len = parse(Int,x[2]); push!(lens,len)
+	seq = String(x[5]); push!(seqs,seq)
+
+	k = length(split(x[1],"-"))
+	if k ==0 yyyy = ""; mm = ""; dd = ""
+	elseif k==1 yyyy=split(x[1],"-")[1]; mm= ""; dd = ""
+	elseif k==2 yyyy,mm = String.(split(x[1],"-")); dd = ""
+	else yyyy,mm,dd = String.(split(x[1],"-"))
+	end
+	push!(yyyys, String(yyyy)); push!(mms, String(mm)); push!(dds, String(dd));
+
+	push!(SAMPLE, (yyyy,mm,dd,geo,len,seq))
+end; # note that the first element of split(toydata,'>') is ""
+sort!(SAMPLE);
+YYYY = sort(unique(yyyys)); MM = sort(unique(mms)); DD = sort(unique(dds));
+GEO=sort(unique(geos)); LEN =sort(unique(lens)); SEQ = sort(unique(seqs));
+println("These are $(length(GEO)) unique geolocations ")
+println("These are $(length(LEN)) unique lengths of sequences ")
+println("These are $(length(SEQ)) unique sequences")
+
+Nice = filter(s->!('N' in s),SEQ);
+
+# \section{Sequence Space}
+
+# Lets start by identifying the measurable space that each (completely specified) sequence is contained in because then our sample will be in the n-fold product of this space (where n in the number of observations in our sample).
+# So, we are in need of space that accomodates all of our observations. There are a couple of weird things that come up in biological data that we should (be able to) deal with such as 'N's in sequences denoting that the nucleotide in a position was not able to be observed. Other things include alignment (though I am not sure if this is a scientific procedure, under the biologists juristiction, or something of a statistical nature). Regardless, these are not a result of the data-generating process; they are a result of a (possibly informed) observation process. Maybe lets focus on the "point data", and then return to some of these intricacies? (where "point data" is data of points, and a point is a complete sequence with no 'N's)
+
+# It appears that the length of a sequence and the counts of nucleotides in a sequence vary across the sample. So our sequence space should accomodate sequences with different lengths and different counts of nucleotides. 
+
+# Without further chattiness, denote the set of nucleotide bases by B. i.e. B = \{'A','C','G','T'\}.
+# That means the set of sequences of length l is B\^l = \{ (w\^1,\dots,w\^l) \mid 1\lei\lem, w\^i \in B \}.
+# So, the set of all sequences is the union over l \in \mathbb{N} of sequences of length l i.e. \bigcup_{l\in\mathbb{N}} B\^l. We will denote this set B^\star.
+
+# Bada bing! Any sequence of 'A','C','G','T' is an element of B^\star, so it seems like B^\star is a good candidate for the set of possible outcomes for an observation. We can take \mathscr{P}(B^\star) to be the sigma-algebra. We could endow this space with a measure, and if we were being honest bayesians we'd do this before looking at the data.
+# So, what probability measure would you like?
+# It is easy to pick ~a~ probability measure on this discrete space, however I don't enjoy doing this because I know very very little about covid so I'm just making arbitrary choices. Also, I find it way more fun to explore data, than to arbitrarily specify some probability measure that ought to reflect how shit actually works in the world.
+
+# So maybe we could take a more adventurous approach that allows us to perform inference (whatever that means) and estimate probabilities in a consistent manner (in the precise logical definition). Any probability measure that reflects the data generating process seems to satisfy these desires.
+# Recall that we are still in the world of "point data", \mathbf{x} = (x_1,\dots,x_n) where x_i \in B^\star
+# One such measure, is the empirical measure: \mathbb{P}\_n = 1/n \sum_i \delta_{x_i}
+# \mathbb{P}\_n:\mathscr{P}(B^\star)\to[0,1]
+# In the "non-point data" world we will have to be more careful because \int_{B^\star}\delta_{X}(w) dw \ge 1 for X \in \mathscr{P}(B^\star)\\varnothing. We will return to this.
+
+# We have not explitly defined a parameter space or a parametric family of functions to define the empirical measure \mathbb{P}\_n, however we can do this using "parameters". Below are some ways of doing this:
+# 0.0) Let \Omega = B^\star. A density (or function) on B^\star is f:B^\star\to\mathbb{R}, so f = \sum_{w \in B^\star} f(w)1_w = \sum_{w \in B^\star} f_w 1_w. Hence, the collection of densities is a "parametric family" with the parameter (f_w)_{w\inB^\star}. NOTE: Technially, for (f_w)_{w\inB^\star} to be well defined we must (be able to) order B^\star; one can do this by partially ordering B^\star by length and then lexicographically w.r.t. B\bar. The order of application of these partial orders gives a total order, <, and (B^\star,<) looks like: ()<(A)<(C)<(G)<(T)<(A,A)<(A,C)<\dots<(T,G)<(T,T)<(A,A,A)<(A,A,C)<\dots<(T,T,G)<(T,T,T)\dots. One could also partially order B^\star lexicographically w.r.t. B\bar and then by length, so (B^\star,<') would look like: ()<(A)<(A,A)<(A,A,A)<\dots<(A,T)<\dots<(B)<(B,B)
+# 0.1) A probability density on B^\star is a density f:B^\star\to\mathbb{R} such that \sum_w |f_w| = 1. Hence, we may have "parametric family" of probability densities with the parameter (f_w)_{w\inB^\star}.
+# 0.2) A probability distribution on B^\star is a density f:B^\star\to\mathbb{R} taking non-negative values, i.e. f_w \ge 0, such that \sum_w f_w = 1. Hence, we may have "parametric family" of probability distributions with the parameter (f_w)_{w\inB^\star}.
+# 1) Let \Theta = \mathbb{N}\^4 be the parameter space. Each \theta \in \Theta determines an equivalence class of B^\star where there are \theta^1=\theta_A 'A's, \theta^2=\theta_C 'C's,\theta^3=\theta_G 'G's, and \theta^4=\theta_T 'T's. The equivalence class is the set of all rearrangements of (A)^{\otimes\theta_A}\otimes(C)^{\otimes\theta_C}\otimes(G)^{\otimes\theta_G}\otimes(T)^{\otimes\theta_T} = B\bar^{\theta_{B\bar}} is \mathfrak{S}^{|\theta|} B\bar^{\theta_{B\bar}}. And \Theta partitions B^\star because for any w \in B^\star, N_{B\bar}w \in \mathbb{N}^4 means that N_{B\bar}w = \vartheta for some \vartheta\in\Theta.
+# Note: You can replace (b)^{\otimes\theta_b} with {b}^{\times\theta_b} to get an e}; thaquivalent expression. The latter is a more set theorhetic approcach. I will avoid this for a very particular reason that I hope to get to later.
+# 2) Let \Phi = \{ \phi\in\mathbb{N}\^4 \mid 1\lei\lej\le4 \implies\phi\_i\le\phi\_j\}. Each \phi \in \Phi determines a equivalence class which is a union of equivalence classes from 1. Namely, the set of w in B^\star such that w has \phi_1 b\_1s, \phi_2 b\_2s, \phi_3 b\_3s, and \phi_4 b\_4s, and {b\_1,b\_2,b\_3,b\_4}=B. Namely, \phi\in\Phi determines the equivalence class, B_ \bigcup_{g\in\mathfrak{S}^4} \mathfrak{S}^{|\phi|} B\bar^{g \phi_{B\bar}}. This partitions B^\star because it is a coarsening of the partiion given in 1. Also, \bigcup_{\phi\in\Phi} \mathfrak{S}\phi = \mathbb{N}\^4.
+# 3) Let \psi = (\psi^{(l)})_{l\in\mathbb{N}} where \psi^{(l)} \inB^l. Then for any w \in B^l we may find an element of \mathfrak{S}_B^l, such that g\psi^{(l)} = w. There may be multiple such g, so we can actually find a subgroup H of \mathfrak{S}_B^l, such that H\psi^{(l)} = \{w\}.
+# 4) This one is a riff on 3) and the finite length sequence approach to everything. First, let \Psi \inB^\infty be some fixed element. Now, for the rest of this bullet, let w \in B^l. Instead of thinking of w as some finite sequence, we could think of it as an equivlence class of sequences w\tilde \subset B^\infty, where every v \in w\tilde has its first \# w elements equal to w, so w\tilde  is an element of B^\infty / \langlee^{(1,\dots,\# v)} v' = v \mid v\inB^\star\rangle=\tilde{B^\star}. Formally, \tilde is a function, \tilde:B^\star\to\mathscr{P}(B^\infty), which is defined by w\mapsto\{v\inB^\infty\mid (v^1,\dots,v^{\# w}) = w \}). Since, B^\infty = \mathfrak{S}_B^\infty \Psi, there is a subgroup H = (H_1,H_2,\dots) \in \mathfrak{S}_B^\infty such that H\Psi = w\tilde. The structure of H is fairly simple: h \in H_1 maps \Psi^1 to w^1,\dots,h \in H_{\# w} maps \Psi^{\# w} to w^{\# w},h\inH_{\# w + 1} maps \Psi^{\# w +1} to any element of B,\dots. So for 1\lei\le\# w, H\_i = (\Psi^i \: w^i)\mathfrak{S}_{ B \\ \{\Psi^i,w^i\}}I_B, and for i>\#w, H\_i = \mathfrak{S}_B.
+
+# Some topic-specific thoughts on each parameterization before we get concrete.
+# 0) This basic probability on the combinitorial structure of sequences. I would avoid using this as THE approach. This considers the dual space of B^\star, aka, the space of linear functionals from B^\star into a field of choice. After looking at it this way, the dual space gives a better perspective on measures, and is the same as (V_B^\star)^* when \{e_A,e_C,e_G,e_T\} is an orthonormal basis for V_B. If \{E_A,E_C,E_G,E_T\} is orthogonal (so ||E_b|| need not be 1), then we can consider densities over the basis E_w = ||E_w|| e_w; these elements can get very big or very small, very slowly or very quickly.
+# 1) This one is probably the most intuitive and very useful. For any sequence its not so hard to count the number of 'A's,'C's,'G's, and 'T's.
+function M_B\bar(s::String)
+	cnts = zeros(Int,4)
+	for c in s
+		cnts += B\bar .== c
+	end
+	return cnts
+end
+
+\mathbb{A} = M_B\bar.(seqs);
+sum.(\mathbb{A})
+# note !! n on x axis,
+plot(sort(sum.(\mathbb{A})))
+#e.g. plot(sort(sum.(\mathbb{A}))[1:10000])
+maximum(\mathbb{A})
+
+#=
+Polya enumeration.
+Y^X is set of functions from X to Y
+|\mathfrak{S}||Y^X/\mathfrak{S}| = \sum_{g\in\mathfrak{S}} |Y|^{c(g)}
+
+Burnsides lemma
+X^g = {x\inX|gx=x}
+|\mathfrak{S}||X/\mathfrak{S}| = \sum_{g\in\mathfrak{S}} |X^g|
+
+\mathfrak{S}_x = {g\in\mathfrak{S}| gx=x}
+|\mathfrak{S}x| = [\mathfrak{S}:\mathfrak{S}_x] = |\mathfrak{S}|/|\mathfrak{S}_x| 
+=#
+# % Statiticians and probabalists sometimes go about this by trying out different models, which are specified by probability measures, and determining one that best fits the data.
+
+
+#lets just consider our data to be stochastic process,
+# So the first observation x\_1
+#=
+\pi:\Theta\to[0,1] is a prior distribution
+
+\pi(\theta|x) = P(x|\theta)\pi(\theta) / m(x)
+
+P(x and \theta) = P(x*1_{\mathfrak{S}\theta}) = (x*1_{\mathfrak{S}\theta})^*|_1
+P(x|\theta) =  = x*1_{\mathfrak{S}\theta}/\pi(\theta)
+
+P(x|\theta) = \partial_\theta(x^*)|_0
+P(\theta|x) = \partial_x(\theta^*)|_0
+
+m(x) = \int_\Theta P(x|\theta) \pi(\theta) d\theta = \int_\Theta P(x|\theta) d\pi = \int_\Theta P(x|\theta) d\pi
+P(\theta) = \int_\Omega P(\theta|\omega) P(\omega) d\omega = \int_\Omega P(\theta|\omega) d\omega =
+
+NOTE: P(x|\theta) = P_\theta(x)
+
+P(\mathbf{X}|\theta) = \partial_\theta  \mathbf{X}^* |_0
+
+
+P(\theta|\mathbf{X}) = P(\theta|\bigoplus_{l\in\mathbb{N}} \mathbf{X}_l) = \bigoplus_l P(\theta|\mathbf{X}_l)
+P(\theta|\mathbf{X}) = P(\theta|\bigoplus_{\theta\in\Theta} \mathbf{X}*1_{\mathfrak{S}\theta}) = \bigoplus_{\theta\in\Theta} P(\theta|\mathbf{X}*1_{\mathfrak{S}\theta})
+
+
+P(\theta|\mathbf{X}) = P(\mathbf{X}|\theta)P(\theta) / P(\mathbf{X})
+P(\mathbf{X}) = \int_\Theta P(\mathbf{X}|\theta)P(\theta) d\theta
+=#
+# I am going to be a bad bayesian. Let P = \mathbb{P} and \pi = \mathbb{pi}. \mathbb{pi} = 1/n\sum_i \delta_{N_B\bar(X_i)}
+#(\theta|x) = P(x|\theta)\pi(\theta) / m(x)
+
+
+# e\^i(n_1e_1+\dots+n_ke_l) = n_i
+# for some orthogonal (?) e_b \in V_B and E = (e_A,e_C,e_G,e_T), the dual of E is \hat{E} = (e^1,e^2,e^3,e^4).
+
+# E\^TE\hat = I_l = J_l*1_l
+# If we let E_w = (e_{w\^1},\dots,e_{w\^l}); 
+# maybe let \otimesE_w = e_{(w\^1,\dots,w\^l)} and \otimesE\hat^\mathbb{N} = e^{(1,\dots,l)}
+# \otimesE\^T\otimesE\hat = \lambda_{\lel} = \sum_i e_{w^i}
+# e.g. E_w = e_
+
+# A bit of a radical take on this is to condider each observation to be an equivalence class of sequences
+# \mathfrak{S} B^* / \mathfrak{S}_{1^l,\infty} = \mathfrak{S}^l\mathfrak{S}^B B\bar
+
+# Orr just say we have the following : \mathbb{G}^l(\mathbb{G}_B \theta_1,\dots,\mathbb{G}_B \theta_k) = \mathbb{G}^l \mathbb{G}_B^{\timesk} \theta
+
+# orr maybe this is just the entire space: \mathbb{G}^l (\mathbb{G}_{B,1}\theta_1,\dots,\mathbb{G}_{B,k}\theta_k)
+
+# wait no, it is just (\mathbb{G}_{B,1}\theta_1,\dots,\mathbb{G}_{B,l}\theta_l) \forall l\in\mathbb{N} and for some defined \theta \in B^{\infty}. (it should be \theta = B\bar). maybe we ought to say \mathbb{G}_{B}^* \theta_*
+# I really like this one
+
+# Another way i like to paramaterize this is \bigoplus_{\alpha\in\mathbb{N}^k} \mathbb{G}^{|\alpha|} \theta^{\otimes\alpha} = \bigoplus_l \bigoplus_{\pi \in \Pi_l^k} \mathbb{G}^{|\pi|} \theta^{\otimes\pi}
+# this has been my favorite for a while, its transparent
+
+
+# which we could parameterize as \bigoplus_{\alpha\in\mathbb{N}^k s.t. i<j\implies\alpha\_i<\alpha\_j} \mathbb{G}^{|\alpha|} (\mathbb{G}_B)^{\otimes|\alpha|} \theta^{\otimes\alpha}, where (\mathbb{G}_B)^{\otimes|\alpha|} is meant as the \{(g,\dots,g)|g \in \mathbb{G}_B \}
+# the above is equal to  \bigoplus_{\alpha\in\mathbb{N}^k s.t. i<j\implies\alpha\_i<\alpha\_j} \mathbb{G}^{|\alpha|} \theta^{\otimes\mathbb{G}^k\alpha} = \bigoplus_l \bigoplus_{y\in\Upsilon_l^k} \mathbb{G}^{l} \theta^{\otimes\mathbb{G}^ky}
+# 
+
+
+
+
+# \section{Kingman's Approach}
+# Kingman has an interesting article, "Random Partitions in Population Genetics", in which he defines a partition structure, describes its connection with Ewens' sampling formula, and provides some probablistic tools. In this paper he views a partition as an integer partition of the frequency distribution of the sample:
+# Let M_{B^\star}: CtsTime \to \mathbb{N}^{B^\star} be a counting process (using the ordering described in Sequence Space.0), and let \mathbb{M}_{B^\star} be the empirical analouge. Now define another counting process M_N:\mathbb{N}^{B^\star} \to \varpi_N, where \varpi_N = \{a\in\mathbb{N}^N \mid\sum_{j=1}^N ja_j = N\} is the set of ordered integer partitions of N. Kingman's random partition is \pi = M_{|\mathbb{M}_{B^\star}(\text{right now})|}\circ\mathbb{M}_{B^\star}(\text{right now}). If \pi=(a_1,a_2,\dots,a_n), then a_1 sequences appeared once, a_2 sequences appeared twice, ..., a_n sequences appeared n times.
+# Kingman then defines the set of all probability distributions on \varpi_n as \Pi_n, so any P \in \Pi_n satisfies P(\pi)\ge0 and \sum_{\pi\in\varpi_n} P(\pi) = 1. So you might wonder what the probability of \pi=(a_1,a_2,\dots,a_n) is. It could be anything. If you also specified that for every m<n (these are variables for sample size), P_m\in\Pi_m must be the distribution arising from sub sampling without replacement from P_n \in \Pi_n, you can consider the probability of \pi :
+# "Consider an infinite population divided into a countable number of sub-populations labelled (say) by colours 1,2,3,..., and suppose that the proportion of the population which is of colour i is x_i, where x_i \ge 0, \sum_{i=1}^\infty x_i = 1" (p.4). Then P_n(\pi) = \phi_\pi(y) = n!\prod_{j=1}^n (j!)^{-a_j} \sum_{v\in[0:n]^\infty \mid M_n(v) = \pi \} x_1^{v_1}x_2^{v_2}\dots . For the particular choice of y=x, this is a number, otherwise this is a function of the variable y.
+
+# I don't want to get too deep into this because I don't think this is the right perspective. It seems that the motivation for this view of a partition (and the resulting importance of a partition structure) comes from considering "a geneticist that examines a sample of n gametes from a population of size N, and whose experimental techniques do not permit a labelling of the alleles he can distinguish"(p.3). I challenge you to distinguish things without being able to label them.
+
+hashSEQ = Dict([s=>i for (i,s) in enumerate(SEQ)]);
+countingSEQprocess = zeros(Int,(n,length(SEQ)));
+for (i,s) in enumerate(seqs)
+	countingSEQprocess[i,hashSEQ[s]] += 1
+end
+
+# Letters or fancy letters used thus far:
+# 'A', B, 'C', 'G', 'T', 'N',
+# N for random n,
+# M for counting
+# ^\star,\mathscr{P},\mathbb{N},\int\Phi,\phi
