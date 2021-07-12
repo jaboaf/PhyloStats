@@ -18,7 +18,7 @@ C_N(values(countmap(sort.(C_L.(SEQs)))))
 # Pfeiffer, F., Gröber, C., Blank, M. et al. Systematic evaluation of error rates and causes in short samples in next-generation sequencing. Sci Rep 8, 10950 (2018). https://doi.org/10.1038/s41598-018-29325-6
 # Ma, X., Shao, Y., Tian, L. et al. Analysis of error profiles in deep next-generation sequencing data. Genome Biol 20, 50 (2019). https://doi.org/10.1186/s13059-019-1659-6
 
-# Statistical methods should be able to accomodate sequence data alone, and more importantly, genomic or genetic observations. These must be computationally feasible in context of the quantity of data available. Otherwise researchers are forced to use less data than what is available, which leaves the world less informed. Perhaps we ought to be more informed.
+# Statistical methods should be able to accomodate sequence data alone, and more importantly, genomic or genetic observations. These must be computationally feasible in context of the quantity of data available. Otherwise researchers are forced to use less data than what is available, which leaves the world less informed. This is not good.
 
 #( Its oddly hard to find the number of observations in a bunch of the covid-19 research, and many of the papers sample from their data).
 
@@ -53,7 +53,7 @@ C_N(values(countmap(sort.(C_L.(SEQs)))))
 
 #\section{Preliminary Definitions and Notations}
 B = Set(['A','C','G','T'])
-B̄ = ['A';'C';'G';'T'] # mathematically this is equal to a 4-tuple
+\bar{B} = ['A';'C';'G';'T'] # mathematically this is equal to a 4-tuple
 toydata = read("some_sequences.fasta",String);
 n = count(==('>'),toydata)
 yyyys = String[]; mms=String[]; dds=String[];
@@ -105,31 +105,32 @@ Nice = filter(s->!('N' in s),SEQ);
 # So maybe we could take a more adventurous approach that allows us to perform inference (whatever that means) and estimate probabilities in a consistent manner (in the precise logical definition). Any probability measure that reflects the data generating process seems to satisfy these desires.
 # Recall that we are still in the world of "point data", 𝐱 = (x_1,…,x_n) where x_i ∈ B^⋆
 # One such measure, is the empirical measure: ℙₙ = 1/n ∑_i δ_{x_i}
-# ℙₙ:𝒫(B^⋆)→[0,1]
+# ℙₙ:B^⋆→[0,1]
 # In the "non-point data" world we will have to be more careful because ∫_{B^⋆}δ_{X}(w) dw ≥ 1 for X ∈ 𝒫(B^⋆)\∅. We will return to this.
 
 # We have not explitly defined a parameter space or a parametric family of functions to define the empirical measure ℙₙ, however we can do this using "parameters". Below are some ways of doing this:
-# 0.0) Let Ω = B^⋆. A density (or function) on B^⋆ is f:B^⋆→ℝ, so f = ∑_{w ∈ B^⋆} f(w)1_w = ∑_{w ∈ B^⋆} f_w 1_w. Hence, the collection of densities is a "parametric family" with the parameter (f_w)_{w∈B^⋆}. NOTE: Technially, for (f_w)_{w∈B^⋆} to be well defined we must (be able to) order B^⋆; one can do this by partially ordering B^⋆ by length and then lexicographically w.r.t. B̄. The order of application of these partial orders gives a total order, <, and (B^⋆,<) looks like: ()<(A)<(C)<(G)<(T)<(A,A)<(A,C)<…<(T,G)<(T,T)<(A,A,A)<(A,A,C)<…<(T,T,G)<(T,T,T)…. One could also partially order B^⋆ lexicographically w.r.t. B̄ and then by length, so (B^⋆,<') would look like: ()<(A)<(A,A)<(A,A,A)<…<(A,T)<…<(B)<(B,B)
+# 0.0) Let Ω = B^⋆. A density (or function) on B^⋆ is f:B^⋆→ℝ, so f = ∑_{w ∈ B^⋆} f(w)1_w = ∑_{w ∈ B^⋆} f_w 1_w. Hence, the collection of densities is a "parametric family" with the parameter (f_w)_{w ∈ B^⋆}. NOTE: Technially, for (f_w)_{w∈ B^⋆} to be well defined we must (be able to) order B^⋆; one can do this by partially ordering B^⋆ by length and then lexicographically w.r.t. \bar{B}. The order of application of these partial orders gives a total order, <, and (B^⋆,<) looks like: ()<(A)<(C)<(G)<(T)<(A,A)<(A,C)<…<(T,G)<(T,T)<(A,A,A)<(A,A,C)<…<(T,T,G)<(T,T,T)…. One could also partially order B^⋆ lexicographically w.r.t. \bar{B} and then by length, so (B^⋆,<') would look like: ()<(A)<(A,A)<(A,A,A)<…<(A,T)<…<(B)<(B,B)
 # 0.1) A probability density on B^⋆ is a density f:B^⋆→ℝ such that ∑_w |f_w| = 1. Hence, we may have "parametric family" of probability densities with the parameter (f_w)_{w∈B^⋆}.
 # 0.2) A probability distribution on B^⋆ is a density f:B^⋆→ℝ taking non-negative values, i.e. f_w ≥ 0, such that ∑_w f_w = 1. Hence, we may have "parametric family" of probability distributions with the parameter (f_w)_{w∈B^⋆}.
-# 1) Let Θ = ℕ⁴ be the parameter space. Each θ ∈ Θ determines an equivalence class of B^⋆ where there are θ^1=θ_A 'A's, θ^2=θ_C 'C's,θ^3=θ_G 'G's, and θ^4=θ_T 'T's. The equivalence class is the set of all rearrangements of (A)^{⊗θ_A}⊗(C)^{⊗θ_C}⊗(G)^{⊗θ_G}⊗(T)^{⊗θ_T} = B̄^{θ_{B̄}} is 𝔖^{|θ|} B̄^{θ_{B̄}}. And Θ partitions B^⋆ because for any w ∈ B^⋆, N_{B̄}w ∈ ℕ^4 means that N_{B̄}w = ϑ for some ϑ∈Θ.
+# 1) Let Θ = ℕ⁴ be the parameter space. Each θ ∈ Θ determines an equivalence class of B^⋆ where there are θ^1=θ_A 'A's, θ^2=θ_C 'C's,θ^3=θ_G 'G's, and θ^4=θ_T 'T's. The equivalence class is the set of all rearrangements of (A)^{⊗θ_A}⊗(C)^{⊗θ_C}⊗(G)^{⊗θ_G}⊗(T)^{⊗θ_T} = \bar{B}^{θ_{\bar{B}}} is 𝔖^{|θ|} \bar{B}^{θ_{\bar{B}}}. And Θ partitions B^⋆ because for any w ∈ B^⋆, N_{\bar{B}}w ∈ ℕ^4 means that N_{\bar{B}}w = ϑ for some ϑ∈Θ.
 # Note: You can replace (b)^{⊗θ_b} with {b}^{×θ_b} to get an e}; thaquivalent expression. The latter is a more set theorhetic approcach. I will avoid this for a very particular reason that I hope to get to later.
-# 2) Let Φ = \{ ϕ∈ℕ⁴ ∣ 1≤i≤j≤4 ⟹ϕᵢ≤ϕⱼ\}. Each ϕ ∈ Φ determines a equivalence class which is a union of equivalence classes from 1. Namely, the set of w in B^⋆ such that w has ϕ_1 b₁s, ϕ_2 b₂s, ϕ_3 b₃s, and ϕ_4 b₄s, and {b₁,b₂,b₃,b₄}=B. Namely, ϕ∈Φ determines the equivalence class, B_ ⋃_{g∈𝔖^4} 𝔖^{|ϕ|} B̄^{g ϕ_{B̄}}. This partitions B^⋆ because it is a coarsening of the partiion given in 1. Also, ⋃_{ϕ∈Φ} 𝔖ϕ = ℕ⁴.
+# 2) Let Φ = \{ ϕ∈ℕ⁴ ∣ 1≤ i≤ j≤ 4 ⟹ϕᵢ≤ϕⱼ\}. Each ϕ ∈ Φ determines a equivalence class which is a union of equivalence classes from 1. Namely, the set of w in B^⋆ such that w has ϕ_1 b₁s, ϕ_2 b₂s, ϕ_3 b₃s, and ϕ_4 b₄s, and {b₁,b₂,b₃,b₄}=B. Namely, ϕ∈Φ determines the equivalence class, B_ ⋃_{g∈𝔖^4} 𝔖^{|ϕ|} \bar{B}^{g ϕ}. This partitions B^⋆ because it is a coarsening of the partiion given in 1. Also, ⋃_{ϕ∈Φ} 𝔖ϕ = ℕ⁴.
+# 2.1) This equivalence class may be given in another way. Let \widehat{𝔖_B}:B^⋆→ B^⋆$ be given by $⋃_l ⋃_{g∈𝔖_B}g^{×l}$. This is the action of the union over l of the diagonal subgroups of  $𝔖_B^{× l}$ acting on the union of their domains $B^l$. Then the equivalence class given by $ϕ$ from (2),  $⋃_{g∈𝔖_B^4} 𝔖_B^{|\phi|} \bar{B}^{gϕ}$, is the same thing as $𝔖^{|ϕ|}\widehat{𝔖_B}\bar{B}^ϕ$. I love this one for a lot of reasons: $\mathfrak{S}^{|\phi|}$ and $\widehat{𝔖_B}$ commute, the klien 4 group is a subgroup of $ \widehat{𝔖_B}$ if you're willing to associate $\mathbb{Z}_2^2$ with nucleotide bases (i have a very very fun, perhaps computationally useful, idea here with $ℂ$), every subgroup of $\widehat{𝔖_B}$ is  isomorphic to a torus of some dimension. There are more reasons.... 
 # 3) Let ψ = (ψ^{(l)})_{l∈ℕ} where ψ^{(l)} ∈B^l. Then for any w ∈ B^l we may find an element of 𝔖_B^l, such that gψ^{(l)} = w. There may be multiple such g, so we can actually find a subgroup H of 𝔖_B^l, such that Hψ^{(l)} = \{w\}.
 # 4) This one is a riff on 3) and the finite length sequence approach to everything. First, let Ψ ∈B^∞ be some fixed element. Now, for the rest of this bullet, let w ∈ B^l. Instead of thinking of w as some finite sequence, we could think of it as an equivlence class of sequences w̃ ⊂ B^∞, where every v ∈ w̃ has its first \# w elements equal to w, so w̃  is an element of B^∞ / ⟨e^{(1,…,\# v)} v' = v ∣ v∈B^⋆⟩=\tilde{B^⋆}. Formally, ̃ is a function, ̃:B^⋆→𝒫(B^∞), which is defined by w↦\{v∈B^∞∣ (v^1,…,v^{\# w}) = w \}). Since, B^∞ = 𝔖_B^∞ Ψ, there is a subgroup H = (H_1,H_2,…) ∈ 𝔖_B^∞ such that HΨ = w̃. The structure of H is fairly simple: h ∈ H_1 maps Ψ^1 to w^1,…,h ∈ H_{\# w} maps Ψ^{\# w} to w^{\# w},h∈H_{\# w + 1} maps Ψ^{\# w +1} to any element of B,…. So for 1≤i≤\# w, Hᵢ = (Ψ^i \: w^i)𝔖_{ B \\ \{Ψ^i,w^i\}}I_B, and for i>\#w, Hᵢ = 𝔖_B.
 
 # Some topic-specific thoughts on each parameterization before we get concrete.
 # 0) This basic probability on the combinitorial structure of sequences. I would avoid using this as THE approach. This considers the dual space of B^⋆, aka, the space of linear functionals from B^⋆ into a field of choice. After looking at it this way, the dual space gives a better perspective on measures, and is the same as (V_B^⋆)^* when \{e_A,e_C,e_G,e_T\} is an orthonormal basis for V_B. If \{E_A,E_C,E_G,E_T\} is orthogonal (so ||E_b|| need not be 1), then we can consider densities over the basis E_w = ||E_w|| e_w; these elements can get very big or very small, very slowly or very quickly.
 # 1) This one is probably the most intuitive and very useful. For any sequence its not so hard to count the number of 'A's,'C's,'G's, and 'T's.
-function M_B̄(s::String)
+function M_\bar{B}(s::String)
 	cnts = zeros(Int,4)
 	for c in s
-		cnts += B̄ .== c
+		cnts += \bar{B} .== c
 	end
 	return cnts
 end
 
-𝔸 = M_B̄.(seqs);
+𝔸 = M_\bar{B}.(seqs);
 sum.(𝔸)
 # note !! n on x axis,
 plot(sort(sum.(𝔸)))
@@ -148,40 +149,50 @@ X^g = {x∈X|gx=x}
 𝔖_x = {g∈𝔖| gx=x}
 |𝔖x| = [𝔖:𝔖_x] = |𝔖|/|𝔖_x| 
 =#
-# % Statiticians and probabalists sometimes go about this by trying out different models, which are specified by probability measures, and determining one that best fits the data.
+
+# \section{On Models}
+# Acccording to Se Yoon Lee, Bayesian models are given by \{P(y|θ),π(θ)\}. This is supposed to be read as \{P(⋅|θ):Ω→ℝ∣ θ ∈ Θ\}∪\{π:Θ→ℝ\} and interpreted as the collection of conditional probability densities and a prior.
+# Se Yoon Lee, Gibbs sampler and coordinate ascent variational inference: A set-theoretical review, https://arxiv.org/pdf/2008.01006.pdf
+
+# According to Sullivant, a parametric statistical model given by a parameter spcae with a family of conditional probability densities, (Θ,\{P_θ:Ω→ℝ∣θ∈Θ\}).
+
+# In either case, Ω is called the outcome space.
+
+# Lets get one thing out of the way:
+# \[ P_θ(⋅) = P(⋅|θ) \]
+
+# Snarky thoughts:
+# P_θ(⋅) = "Traditional Statistics" = "Left θ-ists"
+# P(⋅|θ) = "Bayesian" = "Right θ-ists" 
+# Using, P_θ(⋅) = P(⋅|θ), we arrive at the following:
+# \[ "Left θ statistics" = "Traditional Statistics" = P_θ(⋅) = P(⋅|θ) = "Bayesian" = "Right θ statistics" \]
+
+# Why don't we just define a model using ℳ:Ω×Θ→ℝ_+? I'm not exactly sure.
+# Suppose we define a model by a function ℳ:Ω×Θ→ℝ_+,
+# A conditional density given by θ is P_θ(⋅)=P(⋅|θ)=∫_Ω ℳ(⋅,θ)dω = \frac{∂ℳ(⋅,ϑ)}{∂ϑ}|_{ϑ=θ}
+# The family of conditional probability densities is \{∫_Ω ℳ(⋅,θ)dω ∣ θ∈Θ\}
+# The prior density is π(⋅) = ∫_Ω ℳ(ω,⋅) dω
+
+# The "evidence" of the model is m(⋅) = ∫_Θ P(⋅|θ)π(θ)dθ, huh, ∫_Θ P(⋅|θ)π(θ)dθ = ∫_Θ ∫_Ω ℳ(⋅,θ)dω ∫_Ω ℳ(ω,θ) dω dθ = ∫_Θ ∫_Ω ∫_Ω ℳ(⋅,θ)ℳ(ω,θ)dω dω dθ.
+
+# Maybe consider, m(⋅) = "∫_Θ P(⋅|θ)π(θ)dθ" = "∫_Θ P(⋅,θ) dθ" = ∫_Θℳ(⋅,θ)dθ. This may be easily intereted as a probability density because it is a function from Ω to ℝ_+. Lets take a moment to reflect, we simply specified ℳ as a non-negative function over Ω×Θ and it appears as though the common usage of "P" is precisely this arbitrary function. Huh, we never specified anything more about ℳ, so the number, ∫_Ω∫_Θ ℳ(ω,θ)dωdθ, could really be any number in ℝ_+, which includes 0. (As a side note, lets stop using notation that makes the most basic letter for the most basic concept an arbitrary non-negative function.)
+
+# We observed that ∫_Ω∫_Θ ℳ(ω,θ)dωdθ is a number, and gave names to the following integrals: ∫_Ω ℳ(⋅,θ)dω, ∫_Ω ℳ(ω,⋅)dω, and ∫_Θ ℳ(⋅,θ) dθ.
+
+# There is one more integral of ℳ to consider: ∫_Θ ℳ(ω,⋅)dθ.
+# This is called the "posterior distribution", typically written as "π(θ∣ω)", and holds two honors: the most desired thing to compute and the biggest pain in statistics' butt. Lets first observe that we only supposed a parametric statistical model (bayesian or not) was provided by a non-negative function on the product of an (arbitrary) outcome space (Ω) and a (arbitary) parameter space (Θ). The statisticain often knows the parameter space. So to determine the posterior, given some observation, the statistician should evaluate the integral.
+# Often, statisticians have multiple observations x_1,…,x_n. The data consisting of these observations is typically denoted, 𝐗. So if the statistician wishes to compute the "posterior given the data", they may compute it ∫_Θ ℳ(𝐗,⋅)dθ; that is, if and only if 𝐗 ∈ Ω.
+# In many cases, the data consistsing of observations is not in the form of an observation. The form that 𝐗 takes is up to the modeller's discretion.
+# The data, 𝐗, could be:
+# a set S = \{x_1,…,x_n\}
+# a set function f:S→ℕ counting the number of times an element of S occured in the sample, i.e. f(x) = ∑_{i=1}^n 1_{x=x_i}
+# or a n-tuple, e.g. (x_1,…,x_n), e.g.(x_n,…,x_1)
+# these are some possibilites when Ω is a set.
+# In the case that Ω is a set, we could consider the data to be given by any sum or product or really any binary operation, e.g. +,*,⨁,⨂,∨,∧,∘,[⋅,⋅].
 
 
-#lets just consider our data to be stochastic process,
-# So the first observation x₁
-#=
-π:Θ→[0,1] is a prior distribution
-
-π(θ|x) = P(x|θ)π(θ) / m(x)
-
-P(x and θ) = P(x*1_{𝔖θ}) = (x*1_{𝔖θ})^*|_1
-P(x|θ) =  = x*1_{𝔖θ}/π(θ)
-
-P(x|θ) = ∂_θ(x^*)|_0
-P(θ|x) = ∂_x(θ^*)|_0
-
-m(x) = ∫_Θ P(x|θ) π(θ) dθ = ∫_Θ P(x|θ) dπ = ∫_Θ P(x|θ) dπ
-P(θ) = ∫_Ω P(θ|ω) P(ω) dω = ∫_Ω P(θ|ω) dω =
-
-NOTE: P(x|θ) = P_θ(x)
-
-P(𝐗|θ) = ∂_θ  𝐗^* |_0
-
-
-P(θ|𝐗) = P(θ|⨁_{l∈ℕ} 𝐗_l) = ⨁_l P(θ|𝐗_l)
-P(θ|𝐗) = P(θ|⨁_{θ∈Θ} 𝐗*1_{𝔖θ}) = ⨁_{θ∈Θ} P(θ|𝐗*1_{𝔖θ})
-
-
-P(θ|𝐗) = P(𝐗|θ)P(θ) / P(𝐗)
-P(𝐗) = ∫_Θ P(𝐗|θ)P(θ) dθ
-=#
-# I am going to be a bad bayesian. Let P = ℙ and π = ℼ. ℼ = 1/n∑_i δ_{N_B̄(X_i)}
+# I am going to be a bad bayesian. Let P = ℙ and π = ℼ. ℼ = 1/n∑_i δ_{N_\bar{B}(X_i)}
 #(θ|x) = P(x|θ)π(θ) / m(x)
-
 
 # eⁱ(n_1e_1+…+n_ke_l) = n_i
 # for some orthogonal (?) e_b \in V_B and E = (e_A,e_C,e_G,e_T), the dual of E is \hat{E} = (e^1,e^2,e^3,e^4).
@@ -191,26 +202,6 @@ P(𝐗) = ∫_Θ P(𝐗|θ)P(θ) dθ
 # maybe let ⊗E_w = e_{(w¹,…,wˡ)} and ⊗Ê^ℕ = e^{(1,…,l)}
 # ⊗Eᵀ⊗Ê = λ_{≤l} = ∑_i e_{w^i}
 # e.g. E_w = e_
-
-# A bit of a radical take on this is to condider each observation to be an equivalence class of sequences
-# 𝔖 B^* / 𝔖_{1^l,∞} = 𝔖^l𝔖^B B̄
-
-# Orr just say we have the following : 𝔾^l(𝔾_B θ_1,…,𝔾_B θ_k) = 𝔾^l 𝔾_B^{×k} θ
-
-# orr maybe this is just the entire space: 𝔾^l (𝔾_{B,1}θ_1,…,𝔾_{B,k}θ_k)
-
-# wait no, it is just (𝔾_{B,1}θ_1,…,𝔾_{B,l}θ_l) ∀ l∈ℕ and for some defined θ ∈ B^{∞}. (it should be θ = B̄). maybe we ought to say 𝔾_{B}^* θ_*
-# I really like this one
-
-# Another way i like to paramaterize this is ⨁_{α∈ℕ^k} 𝔾^{|α|} θ^{⊗α} = ⨁_l ⨁_{π ∈ Π_l^k} 𝔾^{|π|} θ^{⊗π}
-# this has been my favorite for a while, its transparent
-
-
-# which we could parameterize as ⨁_{α∈ℕ^k s.t. i<j⟹αᵢ<αⱼ} 𝔾^{|α|} (𝔾_B)^{⊗|α|} θ^{⊗α}, where (𝔾_B)^{⊗|α|} is meant as the \{(g,\dots,g)|g ∈ 𝔾_B \}
-# the above is equal to  ⨁_{α∈ℕ^k s.t. i<j⟹αᵢ<αⱼ} 𝔾^{|α|} θ^{⊗𝔾^kα} = ⨁_l ⨁_{y∈Υ_l^k} 𝔾^{l} θ^{⊗𝔾^ky}
-# 
-
-
 
 
 # \section{Kingman's Approach}
