@@ -53,18 +53,16 @@ C_N(values(countmap(sort.(C_L.(SEQs)))))
 
 #\section{Preliminary Definitions and Notations}
 B = Set(['A','C','G','T'])
-\bar{B} = ['A';'C';'G';'T'] # mathematically this is equal to a 4-tuple
-toydata = read("some_sequences.fasta",String);
-n = count(==('>'),toydata)
+B\bar = ['A';'C';'G';'T'] # mathematically this is equal to a 4-tuple
+data = read("some_sequences.fasta",String);
+n = count(==('>'),data)
 yyyys = String[]; mms=String[]; dds=String[];
-geos=String[]; lens= Int[]; seqs = String[];
+ctrys=String[]; lens= Int[]; seqs = String[];
 SAMPLE = Tuple{String,String,String,String,Int64,String}[]
-for x in split(toydata,'>')[2:end]
-	x = replace(x,'\n'=>"")
-	x = split(x,'|')
-	# date,location,length,seq
-
-	geo = String(x[3]); push!(geos,geo)
+for x in split(data,'>')[2:end]
+	x = split(strip(x),'|') # gives date,location,length,seq
+	
+	ctry = String(split(x[3],':')); push!(ctrys,ctry)
 	len = parse(Int,x[2]); push!(lens,len)
 	seq = String(x[5]); push!(seqs,seq)
 
@@ -76,21 +74,71 @@ for x in split(toydata,'>')[2:end]
 	end
 	push!(yyyys, String(yyyy)); push!(mms, String(mm)); push!(dds, String(dd));
 
-	push!(SAMPLE, (yyyy,mm,dd,geo,len,seq))
-end; # note that the first element of split(toydata,'>') is ""
+	push!(SAMPLE, (yyyy,mm,dd,ctry,len,seq))
+end; # note that the first element of split(data,'>') is ""
 sort!(SAMPLE);
 YYYY = sort(unique(yyyys)); MM = sort(unique(mms)); DD = sort(unique(dds));
-GEO=sort(unique(geos)); LEN =sort(unique(lens)); SEQ = sort(unique(seqs));
-println("These are $(length(GEO)) unique geolocations ")
+CTRY=sort(unique(ctrys)); LEN =sort(unique(lens)); SEQ = sort(unique(seqs));
+println("These are $(length(CTRY)) unique countries ")
 println("These are $(length(LEN)) unique lengths of sequences ")
 println("These are $(length(SEQ)) unique sequences")
-
-Nice = filter(s->!('N' in s),SEQ);
 
 # \section{Sequence Space}
 
 # Lets start by identifying the measurable space that each (completely specified) sequence is contained in because then our sample will be in the n-fold product of this space (where n in the number of observations in our sample).
-# So, we are in need of space that accomodates all of our observations. There are a couple of weird things that come up in biological data that we should (be able to) deal with such as 'N's in sequences denoting that the nucleotide in a position was not able to be observed. Other things include alignment (though I am not sure if this is a scientific procedure, under the biologists juristiction, or something of a statistical nature). Regardless, these are not a result of the data-generating process; they are a result of a (possibly informed) observation process. Maybe lets focus on the "point data", and then return to some of these intricacies? (where "point data" is data of points, and a point is a complete sequence with no 'N's)
+# So, we are in need of space that accomodates all of our observations. There are a couple of weird things that come up in biological data that we should (be able to) deal with such as 'N's in sequences denoting that the nucleotide in a position was not able to be observed. Other things include alignment (though I am not sure if this is a scientific procedure, under the biologists juristiction, or something of a statistical nature). These are not reflective of the biological information, rather, the (erronous or possibly informed)data-generating process. I am not a biologist or geneticist, so I will ignore the question of alignment until later. On the other hand, I do feel well equipped to handle 'N's because they are simple: each instance of 'N' is a placeholder for a nucleotide base. Also, it seems important to include them in our understanding of the data because they show up quite a bit.
+
+numberOfSequencesWithNs = count(s ->'N' in s, seqs)
+println(" $numberOfSequencesWithNs of the $n sequences contain at least one N, which is $(numberOfSequencesWithNs/n) percent of the sequences")
+
+# Upon looking into the Ns I found out that there are other letters that occur in the sequences: 
+print(union(unique.(seqs)...))
+
+M_N(s::String) = count(==('N'),s)
+
+numNsInseqs = M_N.(seqs);
+
+#= https://www.qmul.ac.uk/sbcs/iubmb/misc/naseq.html
+3.1. Guanine. adenine, thymine, cytosine: G,A,T,C
+3.2. Purine (adenine or guanine): R
+3.3. Pyrimidine (thymine or cytosine): Y
+3.4. Adenine or thymine: W
+3.5. Guanine or cytosine: S
+3.6. Adenine or cytosine: M
+3.7. Guanine or thymine: K
+3.8. Adenine or thymine or cytosine: H
+3.9. Guanine or cytosine or thymine: B
+3.10. Guanine or adenine or cytosine: V
+3.11. Guanine or adenine or thymine: D
+3.12. Guanine or adenine or thymine or cytosine: N
+so we need a map
+'A'=>'A'
+'B'=>['C','G','T']
+'C'=>'C'
+'D'=>['A','G','T']
+'E'=>???
+'F'=>???
+'G'=>'G'
+'H'=>['A','C','T']
+'I'=>???
+'J'=>???
+'K'=>['G','T']
+'L'=>???
+'M'=>['A','C']
+'N'=>['A','C','G','T']
+'O'=>???
+'P'=>???
+'R'=>???
+'S'=>['G','S']
+'T'=>'T'
+'U'=>???
+'V'=>['A','C','G']
+'W'=>['A','T']
+'X'=>???
+'Y'=>['C','T']
+'Z'=>???
+=#
+
 
 # It appears that the length of a sequence and the counts of nucleotides in a sequence vary across the sample. So our sequence space should accomodate sequences with different lengths and different counts of nucleotides. 
 
@@ -109,28 +157,28 @@ Nice = filter(s->!('N' in s),SEQ);
 # In the "non-point data" world we will have to be more careful because \int_{B^\star}\delta_{X}(w) dw \ge 1 for X \in \mathscr{P}(B^\star)\\varnothing. We will return to this.
 
 # We have not explitly defined a parameter space or a parametric family of functions to define the empirical measure \mathbb{P}\_n, however we can do this using "parameters". Below are some ways of doing this:
-# 0.0) Let \Omega = B^\star. A density (or function) on B^\star is f:B^\star\to\mathbb{R}, so f = \sum_{w \in B^\star} f(w)1_w = \sum_{w \in B^\star} f_w 1_w. Hence, the collection of densities is a "parametric family" with the parameter (f_w)_{w \in B^\star}. NOTE: Technially, for (f_w)_{w\in B^\star} to be well defined we must (be able to) order B^\star; one can do this by partially ordering B^\star by length and then lexicographically w.r.t. \bar{B}. The order of application of these partial orders gives a total order, <, and (B^\star,<) looks like: ()<(A)<(C)<(G)<(T)<(A,A)<(A,C)<\dots<(T,G)<(T,T)<(A,A,A)<(A,A,C)<\dots<(T,T,G)<(T,T,T)\dots. One could also partially order B^\star lexicographically w.r.t. \bar{B} and then by length, so (B^\star,<') would look like: ()<(A)<(A,A)<(A,A,A)<\dots<(A,T)<\dots<(B)<(B,B)
-# 0.1) A probability density on B^\star is a density f:B^\star\to\mathbb{R} such that \sum_w |f_w| = 1. Hence, we may have "parametric family" of probability densities with the parameter (f_w)_{w\inB^\star}.
-# 0.2) A probability distribution on B^\star is a density f:B^\star\to\mathbb{R} taking non-negative values, i.e. f_w \ge 0, such that \sum_w f_w = 1. Hence, we may have "parametric family" of probability distributions with the parameter (f_w)_{w\inB^\star}.
-# 1) Let \Theta = \mathbb{N}\^4 be the parameter space. Each \theta \in \Theta determines an equivalence class of B^\star where there are \theta^1=\theta_A 'A's, \theta^2=\theta_C 'C's,\theta^3=\theta_G 'G's, and \theta^4=\theta_T 'T's. The equivalence class is the set of all rearrangements of (A)^{\otimes\theta_A}\otimes(C)^{\otimes\theta_C}\otimes(G)^{\otimes\theta_G}\otimes(T)^{\otimes\theta_T} = \bar{B}^{\theta_{\bar{B}}} is \mathfrak{S}^{|\theta|} \bar{B}^{\theta_{\bar{B}}}. And \Theta partitions B^\star because for any w \in B^\star, N_{\bar{B}}w \in \mathbb{N}^4 means that N_{\bar{B}}w = \vartheta for some \vartheta\in\Theta.
-# Note: You can replace (b)^{\otimes\theta_b} with {b}^{\times\theta_b} to get an e}; thaquivalent expression. The latter is a more set theorhetic approcach. I will avoid this for a very particular reason that I hope to get to later.
-# 2) Let \Phi = \{ \phi\in\mathbb{N}\^4 \mid 1\le i\le j\le 4 \implies\phi\_i\le\phi\_j\}. Each \phi \in \Phi determines a equivalence class which is a union of equivalence classes from 1. Namely, the set of w in B^\star such that w has \phi_1 b\_1s, \phi_2 b\_2s, \phi_3 b\_3s, and \phi_4 b\_4s, and {b\_1,b\_2,b\_3,b\_4}=B. Namely, \phi\in\Phi determines the equivalence class, B_ \bigcup_{g\in\mathfrak{S}^4} \mathfrak{S}^{|\phi|} \bar{B}^{g \phi}. This partitions B^\star because it is a coarsening of the partiion given in 1. Also, \bigcup_{\phi\in\Phi} \mathfrak{S}\phi = \mathbb{N}\^4.
-# 2.1) This equivalence class may be given in another way. Let \widehat{\mathfrak{S}_B}:B^\star\to B^\star$ be given by $\bigcup_l \bigcup_{g\in\mathfrak{S}_B}g^{\timesl}$. This is the action of the union over l of the diagonal subgroups of  $\mathfrak{S}_B^{\times l}$ acting on the union of their domains $B^l$. Then the equivalence class given by $\phi$ from (2),  $\bigcup_{g\in\mathfrak{S}_B^4} \mathfrak{S}_B^{|\phi|} \bar{B}^{g\phi}$, is the same thing as $\mathfrak{S}^{|\phi|}\widehat{\mathfrak{S}_B}\bar{B}^\phi$. I love this one for a lot of reasons: $\mathfrak{S}^{|\phi|}$ and $\widehat{\mathfrak{S}_B}$ commute, the klien 4 group is a subgroup of $ \widehat{\mathfrak{S}_B}$ if you're willing to associate $\mathbb{Z}_2^2$ with nucleotide bases (i have a very very fun, perhaps computationally useful, idea here with $\mathbb{C}$), every subgroup of $\widehat{\mathfrak{S}_B}$ is  isomorphic to a torus of some dimension. There are more reasons.... 
-# 3) Let \psi = (\psi^{(l)})_{l\in\mathbb{N}} where \psi^{(l)} \inB^l. Then for any w \in B^l we may find an element of \mathfrak{S}_B^l, such that g\psi^{(l)} = w. There may be multiple such g, so we can actually find a subgroup H of \mathfrak{S}_B^l, such that H\psi^{(l)} = \{w\}.
-# 4) This one is a riff on 3) and the finite length sequence approach to everything. First, let \Psi \inB^\infty be some fixed element. Now, for the rest of this bullet, let w \in B^l. Instead of thinking of w as some finite sequence, we could think of it as an equivlence class of sequences w\tilde \subset B^\infty, where every v \in w\tilde has its first \# w elements equal to w, so w\tilde  is an element of B^\infty / \langlee^{(1,\dots,\# v)} v' = v \mid v\inB^\star\rangle=\tilde{B^\star}. Formally, \tilde is a function, \tilde:B^\star\to\mathscr{P}(B^\infty), which is defined by w\mapsto\{v\inB^\infty\mid (v^1,\dots,v^{\# w}) = w \}). Since, B^\infty = \mathfrak{S}_B^\infty \Psi, there is a subgroup H = (H_1,H_2,\dots) \in \mathfrak{S}_B^\infty such that H\Psi = w\tilde. The structure of H is fairly simple: h \in H_1 maps \Psi^1 to w^1,\dots,h \in H_{\# w} maps \Psi^{\# w} to w^{\# w},h\inH_{\# w + 1} maps \Psi^{\# w +1} to any element of B,\dots. So for 1\lei\le\# w, H\_i = (\Psi^i \: w^i)\mathfrak{S}_{ B \\ \{\Psi^i,w^i\}}I_B, and for i>\#w, H\_i = \mathfrak{S}_B.
+# 0.0) Let $ \Omega = B^\star $. A density (or function) on $ B^\star $ is $ f:B^\star\to\mathbb{R} $, so $ f = \sum_{w \in B^\star} f(w)1_w = \sum_{w \in B^\star} f_w 1_w $. Hence, the collection of densities is a "parametric family" with the parameter (f_w)_{w \in B^\star}. NOTE: Technially, for $ (f_w)_{w\in B^\star} $ to be well defined we must (be able to) order $ B^\star $; one can do this by partially ordering $ B^\star $ by length and then lexicographically w.r.t. $ \bar{B}$. The order of application of these partial orders gives a total order, $<$, and $(B^\star,<)$ looks like: $ ()<(A)<(C)<(G)<(T)<(A,A)<(A,C)<\dots<(T,G)<(T,T)<(A,A,A)<(A,A,C)<\dots<(T,T,G)<(T,T,T)\dots $. One could also partially order $ B^\star $ lexicographically w.r.t. \bar{B} and then by length, so $(B^\star,<') $ would look like: $ ()<'(A)<'(A,A)<'(A,A,A)<'\dots <'(A,T)<'\dots <'(B)<(B,B) $
+# 0.1) A probability density on $ B^\star $ is a density $ f:B^\star\to\mathbb{R} $ such that $ \sum_w |f_w| = 1 $. Hence, we may have "parametric family" of probability densities with the parameter $(f_w)_{w\inB^\star}$.
+# 0.2) A probability distribution on $ B^\star $ is a density $ f:B^\star\to\mathbb{R} $ taking non-negative values, i.e. $ f_w \ge 0 $, such that $ \sum_w f_w = 1 $. Hence, we may have "parametric family" of probability distributions with the parameter $(f_w)_{w\inB^\star}$.
+# 1) Let $\Theta = \mathbb{N}\^4$ be the parameter space. Each $ \theta \in \Theta $ determines an equivalence class of $ B^\star $ where there are $ \theta^1=\theta_A $ 'A's, $ \theta^2=\theta_C $ 'C's,$ \theta^3=\theta_G $ 'G's, and $ \theta^4=\theta_T $ 'T's. The equivalence class is the set of all rearrangements of $ (A)^{\otimes\theta_A}\otimes(C)^{\otimes\theta_C}\otimes(G)^{\otimes\theta_G}\otimes(T)^{\otimes\theta_T} = \bar{B}^{\theta_{\bar{B}}} $ is $ \mathfrak{S}^{|\theta|} \bar{B}^{\theta_{\bar{B}}} $. And $\Theta $ partitions $ B^\star $ because for any $ w \in B^\star , M_{\bar{B}}w \in \mathbb{N}^4 $ means that $ M_{\bar{B}}w = \vartheta $ for some $ \vartheta\in\Theta $.
+# Note: You can replace $(b)^{\otimes\theta_b} $ with $ {b}^{\times\theta_b}$  to get an equivalent expression. The latter is a more set theorhetic approcach. I will avoid this for a very particular reason that I hope to get to later.
+# 2) Let $ \Phi = \{ \phi\in\mathbb{N}\^4 \mid 1 \le i \le j \le 4 \implies\phi\_i\le\phi\_j\} $. Each $ \phi \in \Phi $ determines a equivalence class which is a union of equivalence classes from 1. Namely, the set of w in $ B^\star $ such that w has $\phi_1 b\_1s, \phi_2 b\_2s, \phi_3 b\_3s$, and $\phi_4 b\_4s$, and ${b\_1,b\_2,b\_3,b\_4}=B$. Namely, $ \phi\in\Phi $ determines the equivalence class, $ \bigcup_{g\in\mathfrak{S}^4} \mathfrak{S}^{|\phi|} \bar{B}^{g \phi} $. This partitions $ B^\star $ because it is a coarsening of the partiion given in 1. Also, $ \bigcup_{\phi\in\Phi} \mathfrak{S}\phi = \mathbb{N}\^4 $.
+# 2.1) This equivalence class may be given in another way. Let $\widehat{\mathfrak{S}_B}:B^\star\to B^\star$ be given by $\bigcup_l \bigcup_{g\in\mathfrak{S}_B}g^{\timesl}$. This is the action of the union over l of the diagonal subgroups of  $\mathfrak{S}_B^{\times l}$ acting on the union of their domains $B^l$. Then the equivalence class given by $\phi$ from (2),  $\bigcup_{g\in\mathfrak{S}_B^4} \mathfrak{S}_B^{|\phi|} \bar{B}^{g\phi}$, is the same thing as $\mathfrak{S}^{|\phi|}\widehat{\mathfrak{S}_B}\bar{B}^\phi$. I love this one for a lot of reasons: $\mathfrak{S}^{|\phi|}$ and $\widehat{\mathfrak{S}_B}$ commute, the klien 4 group is a subgroup of $ \widehat{\mathfrak{S}_B}$ if you're willing to associate $\mathbb{Z}_2^2$ with nucleotide bases (i have a very very fun, perhaps computationally useful, idea here with $\mathbb{C}$), every subgroup of $\widehat{\mathfrak{S}_B}$ is  isomorphic to a torus of some dimension. There are more reasons.... 
+# 3) Let $\psi = (\psi^{(l)})_{l\in\mathbb{N}}$ where $\psi^{(l)} \inB^l$. Then for any $w \in B^l$ we may find an element of $ \mathfrak{S}_B^l $, such that $ g\psi^{(l)} = w $. There may be multiple such g, so we can actually find a subgroup H of $ \mathfrak{S}_B^l $, such that $ H\psi^{(l)} = \{w\} $.
+# 4) This one is a riff on 3) and the finite length sequence approach to everything. First, let $ \Psi \inB^\infty $ be some fixed element. Now, for the rest of this bullet, let w \in B^l. Instead of thinking of w as some finite sequence, we could think of it as an equivlence class of sequences $ \tilde{w} \subset B^\infty $, where every $ v \in \tilde{w} $ has its first $ \# w $  elements equal to w, so $\tilde{w}$ is an element of $ B^\infty / \langlee^{(1,\dots,\# v)} v' = v \mid v\inB^\star\rangle=\tilde{B^\star} $. Formally, $\tilde{}$ is a function, $\tilde:B^\star\to\mathscr{P}(B^\infty)$, which is defined by $ w\mapsto\{v\inB^\infty\mid (v^1,\dots,v^{\# w}) = w \}$. Since, $B^\infty = \mathfrak{S}_B^\infty \Psi $, there is a subgroup $ H = (H_1,H_2,\dots) \in \mathfrak{S}_B^\infty $ such that $ H\Psi = \tilde{w}$. The structure of H is fairly simple: $ h \in H_1 $ maps $ \Psi^1 $ to $ w^1,\dots,h \in H_{\# w}$ maps $ \Psi^{\# w} $ to $ w^{\# w},h\inH_{\# w + 1} $ maps $ \Psi^{\# w +1}$ to any element of B,\dots. So for $ 1 \le i \le \# w, H\_i = (\Psi^i \: w^i)\mathfrak{S}_{ B / \{\Psi^i,w^i\}}I_B $, and for $ i>\#w, H\_i = \mathfrak{S}_B $.
 
 # Some topic-specific thoughts on each parameterization before we get concrete.
 # 0) This basic probability on the combinitorial structure of sequences. I would avoid using this as THE approach. This considers the dual space of B^\star, aka, the space of linear functionals from B^\star into a field of choice. After looking at it this way, the dual space gives a better perspective on measures, and is the same as (V_B^\star)^* when \{e_A,e_C,e_G,e_T\} is an orthonormal basis for V_B. If \{E_A,E_C,E_G,E_T\} is orthogonal (so ||E_b|| need not be 1), then we can consider densities over the basis E_w = ||E_w|| e_w; these elements can get very big or very small, very slowly or very quickly.
 # 1) This one is probably the most intuitive and very useful. For any sequence its not so hard to count the number of 'A's,'C's,'G's, and 'T's.
-function M_\bar{B}(s::String)
+function M_B\bar(s::String)
 	cnts = zeros(Int,4)
 	for c in s
-		cnts += \bar{B} .== c
+		cnts += B\bar .== c
 	end
 	return cnts
 end
 
-\mathbb{A} = M_\bar{B}.(seqs);
+\mathbb{A} = M_B\bar.(seqs);
 sum.(\mathbb{A})
 # note !! n on x axis,
 plot(sort(sum.(\mathbb{A})))
@@ -161,13 +209,13 @@ X^g = {x\inX|gx=x}
 # Lets get one thing out of the way:
 # \[ P_\theta(\cdot) = P(\cdot|\theta) \]
 
-# Snarky thoughts:
+# Can we all just get along and dance?:
 # P_\theta(\cdot) = "Traditional Statistics" = "Left \theta-ists"
-# P(\cdot|\theta) = "Bayesian" = "Right \theta-ists" 
+# P(\cdot|\theta) = "Bayesian Statistics" = "Right \theta-ists" 
 # Using, P_\theta(\cdot) = P(\cdot|\theta), we arrive at the following:
 # \[ "Left \theta statistics" = "Traditional Statistics" = P_\theta(\cdot) = P(\cdot|\theta) = "Bayesian" = "Right \theta statistics" \]
 
-# Why don't we just define a model using \mathscr{M}:\Omega\times\Theta\to\mathbb{R}_+? I'm not exactly sure.
+# Why can't we define a model using \mathscr{M}:\Omega\times\Theta\to\mathbb{R}_+? I am not sure, lets see what happens.
 # Suppose we define a model by a function \mathscr{M}:\Omega\times\Theta\to\mathbb{R}_+,
 # A conditional density given by \theta is P_\theta(\cdot)=P(\cdot|\theta)=\int_\Omega \mathscr{M}(\cdot,\theta)d\omega = \frac{\partial\mathscr{M}(\cdot,\vartheta)}{\partial\vartheta}|_{\vartheta=\theta}
 # The family of conditional probability densities is \{\int_\Omega \mathscr{M}(\cdot,\theta)d\omega \mid \theta\in\Theta\}
@@ -190,6 +238,15 @@ X^g = {x\inX|gx=x}
 # these are some possibilites when \Omega is a set.
 # In the case that \Omega is a set, we could consider the data to be given by any sum or product or really any binary operation, e.g. +,*,\bigoplus,\bigotimes,\vee,\wedge,\circ,[\cdot,\cdot].
 
+# It seems like most of the difficulties encountered in the bayesian notation come from blatant misuse of bayes' rule. If P:\Omega\to[0,1], then the probability of A given B may be computed using the formula for conditional probability:
+# \[ P(A\capB) = P(A|B)P(B) \]
+# If you apply this formula to $P(A\capB)$ and $P(B\capA)$, you end up with Bayes' rule:
+# \[ A\capB=B\capA \implies P(A\capB)=P(B\capA) \implies P(A|B)P(B)=P(B|A)P(A) \implies P(A|B)=\frac{P(B|A)P(A)}{P(B)} \]
+# Bayesians are understandably excited to use Bayes' rule. So when tasked with computing the posterior distribution, typically written as "P(\theta|\mathbf{X})", they jump to compute \frac{ P(\mathbf{X}|\theta)P(\theta)}{P(\mathbf{X})}. It is interesting this formula has lasted this long beacause:
+#\[ P(\theta|\mathbf{X})= \frac{ P(\mathbf{X}|\theta)P(\theta)}{P(\mathbf{X})} \implies P(\theta|\mathbf{X})= \frac{P(\mathbf{X}\cap\theta)}{P(\mathbf{X})} \]
+]  tend to jump to the 
+P(A|B) = \frac{P(B|A)P(A)}{P(B)} \]
+# This formula comes from the formula 
 
 # I am going to be a bad bayesian. Let P = \mathbb{P} and \pi = \mathbb{pi}. \mathbb{pi} = 1/n\sum_i \delta_{N_\bar{B}(X_i)}
 #(\theta|x) = P(x|\theta)\pi(\theta) / m(x)
