@@ -1,0 +1,115 @@
+# What I have done:
+
+allnuc0712.fasta is the original file downloaded from GSAID. This is 77,379,035 KB.
+I made a script (FastaToObsTxt.jl) that takes this data and puts each observation on its own line (and removes the '>' at the begining of the line.
+The resulting file (with the same data) is called GeneticObs.txt. This is 48,409,942 KB.
+
+n = 61,065,458 = |alpha| genetic observations
+k = 2,805,095 = #alpha distinct genetic seqs (sequences here are as given, on 2^{A,C,G,T}, see note at end)
+
+max(alpha) = 2_183_654
+min(alpha) = 1
+mean(alpha) = 21.769479465044856
+median(alpha) = 1
+mode(alpha) = 1
+std(alpha) = 4677.903650689179
+mad(alpha) = 0
+
+From alpha we may find, lambda, where lambda_i gives the number of sequences occuring i times in the sample. I have worked with a truncated lambda (called tlambda) because after max(alpha), lambda_i is zero.
+
+maximum(lambda) = 2_296_162
+minimum(lambda) = 0
+mean(lambda) = 0.04593587097962976
+median(lambda) = 0
+mode(lambda) = 0
+std(lambda) = 295.2079910139999
+mad(lambda) = 0
+
+maximum(tlambda) = 2_296_162
+minimum(tlambda) = 0
+mean(tlambda) = 1.2845876681928547
+median(tlambda) = 0
+mode(tlambda) = 0
+std(tlambda) = 1561.111632975252
+mad(tlambda) = 0
+
+
+Given K, we can estimate the parameter theta in our wierd geometric bernoulli model using newtons method on the MLE:
+N=n,K=k are given
+tolerance = 0.0001, (this is arbitary)
+Want to find zero of (in R_+) of the log of the likelihood of x: F(x) = K/x - sum([1/(x+j-1) for j in 1:N])
+F'(x) is: f(x) = -K/x^2 + sum([1/(x+j-1)^2 for j in 1:N])
+Inital guess: x = 1
+Newton:
+while abs(F(x))>=tol
+	global x = x - F(x)/f(x)
+end
+--> x = 607022.5690581335
+For context, uniform distribution over permutations and partitions is when the parameter x is 1.
+
+Applying this model here isn't (really) appropriate. We are considering GENES, plural, as our observations. So any question regarding counts of sequences should be passed to each gene if all the genes have different lengths.
+
+GSAID says "For each of the aligned sequences, we retrieved the coding sequences based on the following boundary positions in the hCoV-19/Wuhan/WIV04/2019 reference:"
+
+The first entry is the gene name, the second are the "boundary positions", and the third is the length of the gene sequences (I added this).
+- "NSP1","266-805", 540
+- "NSP2","806-2719", 1914
+- "NSP3","2720-8554", 5835
+- "NSP4","8555-10054", 1500
+- "NSP5","10055-10972", 918
+- "NSP6","10973-11842", 870
+- "NSP7","11843-12091", 249
+- "NSP8","12092-12685", 594
+- "NSP9","12686-13024", 339
+- "NSP10","13025-13441", 417
+- "NSP11","13442-13480", 39
+- "NSP12","13442-16236", 2795
+- "NSP13","16237-18039", 1803
+- "NSP14","18040-19620", 1581
+- "NSP15","19621-20658", 1038
+- "NSP16","20659-21552", 894
+- "Spike","21563-25384", 3822
+- "NS3","25393-26220", 828
+- "E","26245-26472", 228
+- "M","26523-27191", 669
+- "NS6","27202-27387", 186
+- "NS7a","27394-27759", 366
+- "NS7b","27756-27887", 132
+- "NS8","27894-28259", 366
+- "N","28274-29533", 1260
+- "NS9b","28284-28577", 294
+- "NS9c","28734-28955", 222
+
+The "NS7a" gene and the "NS8" gene have the same length. So it is possible to observe two different genes with the same exact sequence.
+
+See pictures!!
+
+Below is: Gene, Number of Distinct Seqeunces, Number of Observations
+NSP1,42049,2483414
+NSP2,190442,2485341
+NSP3,574890,2485371
+NSP4,153172,2485383
+NSP5,54098,2485396
+NSP6,61047,2485393
+NSP7,7312,2485271
+NSP8,22188,2485280
+NSP9,13219,2485280
+NSP10,21190,2485326
+NSP11,4168,2485289
+NSP12,191201,2485448
+NSP13,135392,2485353
+NSP14,187718,2485305
+NSP15,138312,2485258
+NSP16,145443,2521212
+Spike,593223,2533436
+NS3,114924,2485942
+E,11686,2485318
+M,43758,2485318
+NS6,9952,2485173
+NS7a,93005,2485136
+NS7b,25477,2485063
+NS8,45104,2485006
+N,184038,2484871
+NS9b,13772,2484791
+NS9c,26539,2483929
+
