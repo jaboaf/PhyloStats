@@ -15,20 +15,23 @@ for line in eachline("Data/allnuc0801.fasta")
 		global seq = seq * line
 	end
 end
-println("Gene,K,N")
-for g in Genes println(g,length(GeneSeqs[g]),sum(values(GeneSeqs[g]))) end
 
-#=
 function Newt(N::Int32,K::Int32,tol::Float64)
 	F(x) = K/x - sum([1/(x+j-1) for j in 1:N]) 
 	f(x) = -K/x^2 + sum([1/(x+j-1)^2 for j in 1:N])
 	x = 1
-	while abs(f(x))>=tol
+	while abs(F(x))>=tol
 		x = x - F(x)/f(x)
 	end
 	return x
 end
-=#
+
+println("Gene & N & K & Newt(N,K,0.0001)")
+for g in Genes 
+	N = sum(values(GeneSeqs[g]))
+	K = length(GeneSeqs[g])
+	println(g," & ",N," & ",K," & ",Newt(N,K,0.0001))
+end
 
 # for g in Genes println(Newt(sum(values(GeneSeqs[g])),length(GeneSeqs[g]),0.0001))
 
