@@ -5,7 +5,7 @@ I made a script (FastaToObsTxt.jl) that takes this data and puts each observatio
 The resulting file (with the same data) is called GeneticObs.txt. This is 48,409,942 KB.
 
 n = 61,065,458 = |alpha| genetic observations
-k = 2,805,095 = #alpha distinct genetic seqs (sequences here are as given, on 2^{A,C,G,T}, see note at end)
+k = 2,805,095 = #alpha = distinct genetic seqs (sequences here are as given, on 2^{A,C,G,T}, see note at end)
 
 max(alpha) = 2_183_654
 min(alpha) = 1
