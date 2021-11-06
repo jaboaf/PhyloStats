@@ -242,11 +242,9 @@ X^g = {x∈X|gx=x}
 # \[ P(A∩B) = P(A|B)P(B) \]
 # If you apply this formula to $P(A∩B)$ and $P(B∩A)$, you end up with Bayes' rule:
 # \[ A∩B=B∩A ⟹ P(A∩B)=P(B∩A) ⟹ P(A|B)P(B)=P(B|A)P(A) ⟹ P(A|B)=\frac{P(B|A)P(A)}{P(B)} \]
-# Bayesians are understandably excited to use Bayes' rule. So when tasked with computing the posterior distribution, typically written as "P(θ|𝐗)", they jump to compute \frac{ P(𝐗|θ)P(θ)}{P(𝐗)}. It is interesting this formula has lasted this long beacause:
-#\[ P(θ|𝐗)= \frac{ P(𝐗|θ)P(θ)}{P(𝐗)} ⟹ P(θ|𝐗)= \frac{P(𝐗∩θ)}{P(𝐗)} \]
-]  tend to jump to the 
-P(A|B) = \frac{P(B|A)P(A)}{P(B)} \]
-# This formula comes from the formula 
+# Bayesians are understandably excited to use Bayes' rule. So when tasked with computing the posterior distribution, typically written as "P(θ|𝐗)", they jump to compute \frac{ P(𝐗|θ)P(θ)}{P(𝐗)}. If you replace A with θ, replace B with 𝐗, and reverse the chain of implications (using the modus pomens rule in logic) you find:
+#\[ P(θ|𝐗)= \frac{P(𝐗|θ)P(θ)}{P(𝐗)} ⟹ P(θ|𝐗)P(𝐗)= P(𝐗|θ)P(θ) ⟹ P(θ∩𝐗)=P(𝐗∩θ) ⟹ θ∩𝐗=𝐗∩θ\]
+# In bayesian models, θ and 𝐗 tend to live in different spaces, so it tends tobe the case that $ θ∩𝐗=𝐗∩θ=∅$.
 
 # I am going to be a bad bayesian. Let P = ℙ and π = ℼ. ℼ = 1/n∑_i δ_{N_\bar{B}(X_i)}
 #(θ|x) = P(x|θ)π(θ) / m(x)
