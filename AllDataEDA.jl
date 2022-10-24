@@ -1,10 +1,10 @@
+# Exploratory Analysis of the GENETIC peices of all the genomic observations data GSAID had on 07/12/21
+
 
 # The keys of this dict are "genes" and the values will be frequencies over sequences
 Genes = ["NSP1","NSP2","NSP3","NSP4","NSP5","NSP6","NSP7","NSP8","NSP9","NSP10","NSP11","NSP12","NSP13","NSP14","NSP15","NSP16","Spike","NS3","E","M","NS6","NS7a","NS7b","NS8","N","NS9b","NS9c"]
 GeneSeqs = Dict([ G => Dict{String,Int32}() for G in Genes])
 GeneSeqs[""] = Dict{String,Int32}()
-
-
 
 M = FiniteSuppFn(Dict())
 for line in eachline("Data/GeneticObs.txt")

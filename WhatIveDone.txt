@@ -1,11 +1,17 @@
 # What I have done:
 
-allnuc0712.fasta is the original file downloaded from GSAID. This is 77,379,035 KB.
-I made a script (FastaToObsTxt.jl) that takes this data and puts each observation on its own line (and removes the '>' at the begining of the line.
-The resulting file (with the same data) is called GeneticObs.txt. This is 48,409,942 KB.
+On 07/12/22 I downloaded "all" of data the GSAID makes available. The file is allnuc0712.fasta and takes up 77,379,035 KB of space. A Julia script (FastaToObsTxt.jl) reformats this data: it puts each "observation" on its own line and removes each '>'. The resulting file is called GeneticObs.txt and takes up 48,409,942 KB.
 
-n = 61,065,458 = |alpha| genetic observations
-k = 2,805,095 = #alpha = distinct genetic seqs (sequences here are as given, on 2^{A,C,G,T}, see note at end)
+(Regarding "all" and "observation": allnuc0712.fasta is composed of genetic "observations" produced by splitting and trimming each genomic observation and assigning each piece a name. This is done according to a function associating a name to an interval of nucleotides, that is at the bottom of this document. This choice is GSAID's. The only way to obtain "raw" genomic observations is to download them; you can download at most 1,000 genomic observations at a time. his is very bad (explained later). ) 
+
+(Regarding "raw": For each genomic observation, we get a finite sequence of non-empty subsets of {A,C,G,T}. I desire all the information associated produced by the measurement mechanism, a tall order, so I'd be satisfied with a finite sequence of probability distributions on {A,C,G,T} (plus all precision information available)).
+
+Idealized interpretation of a genomic or genetic sequence associated with an observation yields the sequence space: S = {s:{1,...,m} -> 2^{A,C,G,T} - {{}} | m is a positive integer}
+
+alpha: S_0 -> {m| m is a positive integer} encodes the number of times a sequence in S is observed in the sample. S_0 is the set of sequences observed and for s in S_0, alpha(s) is the number of times s appears in the data.
+
+n = 61,065,458 = |alpha| = number of genetic observations
+k = 2,805,095 = #alpha = cardinality of S_0 = number of genetic seqs observed
 
 max(alpha) = 2_183_654
 min(alpha) = 1
@@ -15,7 +21,7 @@ mode(alpha) = 1
 std(alpha) = 4677.903650689179
 mad(alpha) = 0
 
-From alpha we may find, lambda, where lambda_i gives the number of sequences occuring i times in the sample. I have worked with a truncated lambda (called tlambda) because after max(alpha), lambda_i is zero.
+alpha determines lambda, which encodes the frequencies of counts. lambda: {1,...,n=|alpha|} -> {0,...,n=|alpha|} and lambda_j gives the number of sequences occuring j times in the sample (i.e. lambda_j = cardinality of {s in S_0 | alpha(s)=j}).
 
 maximum(lambda) = 2_296_162
 minimum(lambda) = 0
@@ -25,6 +31,10 @@ mode(lambda) = 0
 std(lambda) = 295.2079910139999
 mad(lambda) = 0
 
+(Note: It may be appropriate to consider lambda', the extension of lambda to all positive integers by the zero function. In which case, maximum(lambda')=maximum(lambda), minimum(lambda')=minimum(lambda), mean(lambda')=0, median(lambda')=0, mode(lambda')=0, mad(lambda')=0 and std(lambda') is not known.)
+
+lambda is zero for all integers greater than max(alpha). So I also work with a truncated version of lambda, called tlambda, that is the restriction of lambda to positive integers less than or equal to max(alpha).
+
 maximum(tlambda) = 2_296_162
 minimum(tlambda) = 0
 mean(tlambda) = 1.2845876681928547
@@ -33,6 +43,7 @@ mode(tlambda) = 0
 std(tlambda) = 1561.111632975252
 mad(tlambda) = 0
 
+The practice of statistics
 
 Given K, we can estimate the parameter theta in our wierd geometric bernoulli model using newtons method on the MLE:
 N=n,K=k are given
