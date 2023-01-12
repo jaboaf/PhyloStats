@@ -1,0 +1,34 @@
+
+
+
+https://books.google.com/books/about/Statistical_Analysis_of_Empirical_Data.html?id=k0nhDwAAQBAJ
+https://www.jstor.org/stable/2340444
+
+
+https://ftp.ncbi.nlm.nih.gov/refseq/release/viral/
+
+
+
+
+[National Cancer Institute Genomic Data Commons DNA-Seq analysis pipeline] (https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/DNA_Seq_Variant_Calling_Pipeline/)
+- BAM files submitted to GDC:
+	- split by read groups
+	- converted to FASTQ
+- If a read does not pass Illumina's Chastity Test, then it is removed.
+- Alignment is the next step. This step eliminates data and arranges data.
+	- [BWA](https://bio-bwa.sourceforge.net/) stands for Burrows-Wheeler Aligner. Manual for the tool that does the aligning is here: https://bio-bwa.sourceforge.net/bwa.shtml . 
+	- Alignment for reads longer than 200 bases ["long read alignment"](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2828108/)
+	- Alignment for reads between 32 and 100 bases ["short read alignment"](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2705234/)
+	- Both use the [Burrows–Wheeler transform](https://en.wikipedia.org/wiki/Burrows%E2%80%93Wheeler_transform)
+	- The NCI GDC uses
+		-[BWA-MEM](https://arxiv.org/pdf/1303.3997.pdf) when mean read length is longer than 70 bases (repo: https://github.com/lh3/mem-paper)
+		- and BWA-aln otherwise.
+
+Interesting Paper: A statistical framework for SNP calling, mutation discovery, association mapping and population genetical parameter estimation from sequencing data (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3198575/)
+
+Regariding the quality of alignment
+- Mapping short DNA sequencing reads and calling variants using mapping quality scores (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2577856/).
+
+
+
+
